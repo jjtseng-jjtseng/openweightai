@@ -61,7 +61,6 @@ spec:
         - --enable-prefix-caching
         - --generation-config=auto
         - --tensor-parallel-size=1
-        - --disable-log-requests
         env:
         - name: HF_TOKEN
           value: __HF_TOKEN_JSON__
