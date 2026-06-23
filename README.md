@@ -33,8 +33,8 @@ The included template uses cost-capped L4 settings:
 
 - GPU: `nvidia-l4`
 - GPU count: `1`
-- vLLM resources: `8 CPU`, `32Gi` memory
-- API resources: `1 CPU`, `1Gi` memory
+- vLLM resources: `6 CPU`, `24Gi` memory
+- API resources: `1 CPU`, `512Mi` memory
 - minimum instances: `0`
 - maximum instances: configurable, default `1`
 - concurrency: configurable, default `8`
@@ -43,6 +43,8 @@ The included template uses cost-capped L4 settings:
 - GPU zonal redundancy: disabled for lower GPU-second cost
 
 Use `max instances = 1` while testing so a bad loop cannot fan out multiple L4 instances.
+
+The template keeps the combined CPU and memory footprint conservative for a two-container L4 service. If you later move the FastAPI wrapper into the same image as vLLM, you can give the single container the full recommended L4 shape more directly.
 
 ## Deploy From Colab
 
