@@ -1,0 +1,87 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: __SERVICE_NAME_JSON__
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: __MAX_INSTANCES_JSON__
+        run.googleapis.com/container-dependencies: '{"api":["vllm"]}'
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/gpu-zonal-redundancy-disabled: "true"
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      serviceAccountName: __SERVICE_ACCOUNT_JSON__
+      containerConcurrency: __CONCURRENCY_NUMBER__
+      timeoutSeconds: 600
+      containers:
+      - name: api
+        image: __API_IMAGE_JSON__
+        ports:
+        - name: http1
+          containerPort: 8080
+        env:
+        - name: API_KEY
+          value: __API_KEY_JSON__
+        - name: MODEL_ID
+          value: __MODEL_ID_JSON__
+        - name: VLLM_BASE_URL
+          value: "http://127.0.0.1:8000"
+        - name: MODEL_TIMEOUT_SECONDS
+          value: "180"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 30
+          periodSeconds: 2
+          timeoutSeconds: 1
+      - name: vllm
+        image: "us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:gemma4"
+        command:
+        - vllm
+        args:
+        - serve
+        - __MODEL_ID_ARG__
+        - --host=0.0.0.0
+        - --port=8000
+        - --dtype=bfloat16
+        - --max-model-len=8192
+        - --max-num-seqs=16
+        - --gpu-memory-utilization=0.90
+        - --enable-chunked-prefill
+        - --enable-prefix-caching
+        - --generation-config=auto
+        - --tensor-parallel-size=1
+        - --disable-log-requests
+        env:
+        - name: HF_TOKEN
+          value: __HF_TOKEN_JSON__
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: __HF_TOKEN_JSON__
+        - name: HF_HOME
+          value: "/tmp/huggingface"
+        - name: VLLM_USE_V1
+          value: "1"
+        resources:
+          limits:
+            cpu: "8"
+            memory: "32Gi"
+            nvidia.com/gpu: "1"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          failureThreshold: 1800
+          periodSeconds: 1
+          timeoutSeconds: 1
+      nodeSelector:
+        run.googleapis.com/accelerator: nvidia-l4
